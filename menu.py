@@ -1,0 +1,112 @@
+MENU_DATA = {
+    "Специи и соусы": [
+        ("adjika", "Аджика"),
+        ("svansalt", "Сванская соль"),
+        ("khmeli_suneli", "Хмели-сунели"),
+        ("utscho_suneli", "Уцхо-сунели"),
+        ("kah_oil", "Кахетинское масло"),
+        ("kondari", "Кондари"),
+        ("adjika_50", "Аджика (50гр)"),
+        ("tkemali", "Ткемали (50гр)"),
+        ("cream_mint", "Сливочный соус с мятой (50гр)"),
+        ("narsharab", "Наршараб (50гр)"),
+        ("satsebeli", "Сацебели (50гр)"),
+        ("satsivi", "Сациви (50гр)"),
+        ("matsoni", "Мацони"),
+        ("tzatziki", "Дзадзики")
+    ],
+    "Хинкали": [
+        ("beef_pork_khinkali", "Хинкали с говядиной и свининой"),
+        ("lamb_khinkali", "Хинкали с бараниной"),
+        ("mushroom_khinkali", "Хинкали с вешенками"),
+        ("sulguni_khinkali", "Хинкали с сулугуни"),
+        ("salmon_khinkali", "Хинкали с сёмгой"),
+        ("duck_khinkali", "Хинкали с уткой"),
+        ("veggie_khinkali", "Хинкали с не мясом")
+    ],
+    "Закуски": [
+        ("spinach_phali", "Пхали из шпината"),
+        ("beetroot_phali", "Пхали из свеклы"),
+        ("pumpkin_phali", "Пхали из тыквы"),
+        ("eggplant_roll", "Рулет из баклажана"),
+        ("appetizer_assorti", "Ассорти из закусок"),
+        ("small_lobio", "Маленький лобио"),
+        ("pickled_plate", "Тарелка с соленьями"),
+        ("sulguni_cheese", "Сулугуни/Имеретинский сыр"),
+        ("fried_sulguni", "Жареный сулугуни/Имеретинский сыр"),
+        ("cheese_plate", "Сырная тарелка"),
+        ("chicken_satsivi", "Сациви с курицей"),
+        ("salmon_satsivi", "Сациви с семгой"),
+        ("baked_eggplants", "Баклажаны, запеченные с сулугуни"),
+        ("vegetable_plate", "Овощная тарелка"),
+        ("fried_potatoes", "Жареный картофель с кинзой"),
+        ("basturma", "Бастурма"),
+        ("pate_assorti", "Ассорти паштетов"),
+        ("mushrooms_in_ketsi", "Шампиньоны в кеци"),
+        ("tashmijabi", "Ташмиджаби")
+    ],
+    "Салаты": [
+        ("tbilisi_vegetable_salad", "Овощной салат по-тбилисски"),
+        ("fried_sulguni_beet_salad", "Салат с жареным сулугуни и свеклой"),
+        ("salmon_mandarin_dressing_salad", "Салат с сёмгой и мандариновой заправкой"),
+        ("chicken_kinzmari_salad", "Салат с цыпленком и соусом кинзмари"),
+        ("duck_kinzmari_salad", "Салат с утиной грудкой и соусом кинзмари"),
+        ("pink_tomato_salad", "Салат из розовых томатов")
+    ],
+    "Супы": [
+        ("kharcho", "Харчо"),
+        ("lobio_soup", "Лобио"),
+        ("spinach_soup", "Суп со шпинатом")
+    ],
+    "Хачапури": [
+        ("megruli", "Мегрули или Хачапури по-мегрельски"),
+        ("adjaruli", "Аджарули или Хачапури по-аджарски"),
+        ("large_adjaruli", "Аджарский побольше"),
+        ("imeruli", "Имерули или Хачапури по-имеретински"),
+        ("penovani", "Пеновани"),
+        ("penovani_greens", "Пеновани с зеленью"),
+        ("lobiani", "Лобиани"),
+        ("lobiani_bacon", "Лобиани с беконом"),
+        ("kartopiliani", "Картопилиани"),
+        ("kartopiliani_cheese", "Картопилиани с сыром"),
+        ("kubdari", "Кубдари"),
+        ("pomidori_da_qveli", "Помидори да квели"),
+        ("pomidori_da_qveli_ham", "Помидори да квели с ветчиной"),
+        ("adjaruli_truffle", "Аджарули с трюфелем"),
+        ("kubdari_veggie", "Кубдари с не мясом"),
+        ("kubdari_chicken", "Кубдари с цыпленком"),
+        ("yeast_dough", "Дрожжевое тесто"),
+        ("puff_dough", "Слоеное тесто")
+    ],
+    "Горячее": [
+        ("ojakhuri_chicken", "Оджахури с цыпленком"),
+        ("ojakhuri_pork", "Оджахури со свининой"),
+        ("ojakhuri_mushrooms", "Оджахури с грибами"),
+        ("chkmeruli_chicken", "Цыпленок чкмерули"),
+        ("pork_shashlik", "Шашлык свиной"),
+        ("chicken_shashlik", "Шашлык куриный"),
+        ("duck_shashlik", "Шашлык из утки"),
+        ("pork_chop", "Корейка свиная"),
+        ("lamb_lula", "Люля из барашка"),
+        ("turkey_lula", "Люля из индейки"),
+        ("grilled_vegetables", "Овощи на решётке"),
+        ("salmon_shashlik", "Шашлык из семги"),
+        ("grilled_lamb_tomato_salad", "Баранина на гриле с салатом из томатов")
+    ],
+    "Завтраки": [
+        ("georgian_scramble", "Скрамбл по-грузински"),
+        ("elargi", "Эларджи"),
+        ("shakshuka_boat", "Шакшука в лодочке"),
+        ("nadugi_cheesecakes", "Сырники из надуги"),
+        ("georgian_omelette", "Омлет по-грузински"),
+        ("matsoni_figs", "Мацони с вяленым инжиром"),
+        ("georgian_eggs", "Яйца по-грузински")
+    ],
+    "Десерты": [
+        ("churchkhela", "Чурчхела"),
+        ("divine_pelamushi", "Божественный пеламуши"),
+        ("baklava", "Пахлава"),
+        ("pear_pie", "Грушевый пирог"),
+        ("honey_cake", "Медовик")
+    ]
+}

@@ -1,8 +1,13 @@
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, ContextTypes
+from menu import MENU_DATA
+import json
 
-# Токен вашего бота
-TOKEN = "8038332758:AAHINUOZ9SqvtJ-TacGOUF7eC4diVKi4Q_w"
+
+with open("config.json", "r") as file:
+    config = json.load(file)
+
+TOKEN = config["BOT_TOKEN"]
 
 file_path = "useful_links.txt"
 
@@ -10,16 +15,17 @@ file_path = "useful_links.txt"
 with open(file_path, "r", encoding="utf-8") as file:  # encoding="utf-8" используется для поддержки кириллицы
     file_content = file.read()
 
-# Обработчик команды /start
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    keyboard = [
-        [InlineKeyboardButton("Начать", callback_data='welcome')],
-    ]
-    reply_markup = InlineKeyboardMarkup(keyboard)
-    await update.message.reply_text(
-        "Добро пожаловать в бот ресторана \"Хачапури и Вино\"! Нажмите 'Начать', чтобы перейти к выбору раздела.",
-        reply_markup=reply_markup
-    )
+# Токен вашего бота
+TOKEN = "8038332758:AAHINUOZ9SqvtJ-TacGOUF7eC4diVKi4Q_w"
+
+
+
+# Генерация кнопок для категории
+def get_buttons_for_category(category_name):
+    dishes = MENU_DATA.get(category_name, [])
+    buttons = [[InlineKeyboardButton(name, callback_data=callback_data)] for callback_data, name in dishes]
+    buttons.append([InlineKeyboardButton("Назад", callback_data="main_menu")])
+    return buttons
 
 # Обработчик кнопок
 async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -36,79 +42,30 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
         await query.edit_message_text("Выберите раздел:", reply_markup=reply_markup)
+
     elif query.data == 'main_menu':
         keyboard = [
-            [InlineKeyboardButton("Специи и соусы", callback_data='spices_sauces')],
-            [InlineKeyboardButton("Хинкали", callback_data='khinkali')],
-            [InlineKeyboardButton("Закуски", callback_data='appetizers')],
-            [InlineKeyboardButton("Салаты", callback_data='salads')],
-            [InlineKeyboardButton("Супы", callback_data='soups')],
-            [InlineKeyboardButton("Хачапури", callback_data='khachapuri')],
-            [InlineKeyboardButton("Горячее", callback_data='main_dishes')],
-            [InlineKeyboardButton("Завтраки", callback_data='breakfast')],
-            [InlineKeyboardButton("Десерты", callback_data='desserts')],
-            [InlineKeyboardButton("Назад", callback_data='welcome')]
+            [InlineKeyboardButton(category, callback_data=category.lower().replace(" ", "_"))]
+            for category in MENU_DATA.keys()
         ]
+        keyboard.append([InlineKeyboardButton("Назад", callback_data="welcome")])
         reply_markup = InlineKeyboardMarkup(keyboard)
         await query.edit_message_text("Выберите раздел основного меню:", reply_markup=reply_markup)
-    elif query.data == 'spices_sauces':
-        keyboard = [
-            [InlineKeyboardButton("Аджика", callback_data='adjika')],
-            [InlineKeyboardButton("Сванская соль", callback_data='svansalt')],
-            [InlineKeyboardButton("Хмели-сунели", callback_data='khmeli_suneli')],
-            [InlineKeyboardButton("Уцхо-сунели", callback_data='utscho_suneli')],
-            [InlineKeyboardButton("Кахетинское масло", callback_data='kah_oil')],
-            [InlineKeyboardButton("Кондари", callback_data='kondari')],
-            [InlineKeyboardButton("Аджика (50гр)", callback_data='adjika_50')],
-            [InlineKeyboardButton("Ткемали (50гр)", callback_data='tkemali')],
-            [InlineKeyboardButton("Сливочный соус с мятой (50гр)", callback_data='cream_mint')],
-            [InlineKeyboardButton("Наршараб (50гр)", callback_data='narsharab')],
-            [InlineKeyboardButton("Сацебели (50гр)", callback_data='satsebeli')],
-            [InlineKeyboardButton("Сациви (50гр)", callback_data='satsivi')],
-            [InlineKeyboardButton("Мацони", callback_data='matsoni')],
-            [InlineKeyboardButton("Дзадзики", callback_data='tzatziki')],
-            [InlineKeyboardButton("Назад", callback_data='main_menu')]
-        ]
-        reply_markup = InlineKeyboardMarkup(keyboard)
-        await query.edit_message_text("Выберите специю или соус:", reply_markup=reply_markup)
-    elif query.data in [
-        'adjika', 'svansalt', 'khmeli_suneli', 'utscho_suneli',
-        'kah_oil', 'kondari', 'adjika_50', 'tkemali', 'cream_mint',
-        'narsharab', 'satsebeli', 'satsivi', 'matsoni', 'tzatziki'
-    ]:
-        item_name = {
-            'adjika': "Аджика",
-            'svansalt': "Сванская соль",
-            'khmeli_suneli': "Хмели-сунели",
-            'utscho_suneli': "Уцхо-сунели",
-            'kah_oil': "Кахетинское масло",
-            'kondari': "Кондари",
-            'adjika_50': "Аджика (50гр)",
-            'tkemali': "Ткемали (50гр)",
-            'cream_mint': "Сливочный соус с мятой (50гр)",
-            'narsharab': "Наршараб (50гр)",
-            'satsebeli': "Сацебели (50гр)",
-            'satsivi': "Сациви (50гр)",
-            'matsoni': "Мацони",
-            'tzatziki': "Дзадзики"
-        }
-        await query.edit_message_text(f"Вы выбрали: *{item_name[query.data]}*.", parse_mode='Markdown')
-    elif query.data == 'khinkali':
-        await query.edit_message_text("Раздел *Хинкали* пока в разработке.")
-    elif query.data == 'appetizers':
-        await query.edit_message_text("Раздел *Закуски* пока в разработке.")
-    elif query.data == 'salads':
-        await query.edit_message_text("Раздел *Салаты* пока в разработке.")
-    elif query.data == 'soups':
-        await query.edit_message_text("Раздел *Супы* пока в разработке.")
-    elif query.data == 'khachapuri':
-        await query.edit_message_text("Раздел *Хачапури* пока в разработке.")
-    elif query.data == 'main_dishes':
-        await query.edit_message_text("Раздел *Горячее* пока в разработке.")
-    elif query.data == 'breakfast':
-        await query.edit_message_text("Раздел *Завтраки* пока в разработке.")
-    elif query.data == 'desserts':
-        await query.edit_message_text("Раздел *Десерты* пока в разработке.")
+
+    elif query.data in [category.lower().replace(" ", "_") for category in MENU_DATA.keys()]:
+        category_name = next((name for name in MENU_DATA.keys() if name.lower().replace(" ", "_") == query.data), None)
+        if category_name:
+            keyboard = get_buttons_for_category(category_name)
+            reply_markup = InlineKeyboardMarkup(keyboard)
+            await query.edit_message_text(f"Выберите блюдо из раздела '{category_name}':", reply_markup=reply_markup)
+
+    elif any(query.data == callback_data for dishes in MENU_DATA.values() for callback_data, _ in dishes):
+        dish_name = next(
+            (name for dishes in MENU_DATA.values() for callback_data, name in dishes if callback_data == query.data),
+            None
+        )
+        if dish_name:
+            await query.edit_message_text(f"Вы выбрали: *{dish_name}*.", parse_mode='Markdown')
     elif query.data == 'wine':
         await query.edit_message_text("Раздел *Винная карта* пока в разработке.")
     elif query.data == 'work_features':
@@ -124,7 +81,19 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             reply_markup=reply_markup
         )
 
-# Основная функция запуска бота
+
+# Стартовое сообщение
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    keyboard = [
+        [InlineKeyboardButton("Начать", callback_data="welcome")],
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    await update.message.reply_text(
+        "Добро пожаловать в бот ресторана \"Хачапури и Вино\"! Нажмите 'Начать', чтобы перейти к выбору раздела.",
+        reply_markup=reply_markup
+    )
+
+# Запуск бота
 def main():
     app = Application.builder().token(TOKEN).build()
     app.add_handler(CommandHandler("start", start))
@@ -133,3 +102,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
