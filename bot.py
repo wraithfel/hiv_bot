@@ -4,6 +4,7 @@ import psycopg2
 from openai import OpenAI
 import json
 import openai
+import pandas as pd
 
 # Загрузка конфигурации базы данных
 with open("db_config.json", "r", encoding="utf-8") as file:
@@ -34,7 +35,7 @@ def connect_to_db():
 def get_categories():
     conn = connect_to_db()
     cursor = conn.cursor()
-    cursor.execute("SELECT DISTINCT category FROM dishes ORDER BY category")
+    cursor.execute("SELECT DISTINCT category FROM full_menu ORDER BY category")
     categories = [row[0] for row in cursor.fetchall()]
     cursor.close()
     conn.close()
@@ -44,23 +45,68 @@ def get_categories():
 def get_dishes_by_category(category):
     conn = connect_to_db()
     cursor = conn.cursor()
-    cursor.execute("SELECT id, name FROM dishes WHERE category = %s ORDER BY id", (category,))
+    cursor.execute("SELECT id, name FROM full_menu WHERE category = %s ORDER BY id", (category,))
     dishes = [{"id": row[0], "name": row[1]} for row in cursor.fetchall()]
     cursor.close()
     conn.close()
     return dishes
 
+
+# Получение данных о блюде по id
 # Получение данных о блюде по id
 def get_dish_by_id(dish_id):
     conn = connect_to_db()
     cursor = conn.cursor()
     cursor.execute(
-        "SELECT name, description, ingredients, photo_url, details FROM dishes WHERE id = %s", (dish_id,)
+        "SELECT name, category, description, ingredients, photo_url, details FROM full_menu WHERE id = %s", (dish_id,)
     )
     dish = cursor.fetchone()
     cursor.close()
     conn.close()
     return dish
+
+# Генерация карточки блюда
+async def send_dish_card(query, dish_data):
+    async def send_dish_card(query, dish_data):
+        if dish_data:
+            # Распаковка данных из запроса
+            name, category, description, ingredients, photo_url, details, allergens, veg, features = dish_data
+
+            # Начало формирования сообщения
+            message = f"🍴 *{name}*\n"
+            message += f"📂 Категория: {category}\n\n"
+
+            # Добавляем данные только если они не NaN или пусты
+            if pd.notna(description) and description.strip():
+                message += f"📖 *Описание:*\n{description}\n\n"
+            if pd.notna(ingredients) and ingredients.strip():
+                message += f"📝 *Ингредиенты:*\n{ingredients}\n\n"
+            if pd.notna(features) and features.strip():
+                message += f"✨ *Особенности:*\n{features}\n\n"
+            if pd.notna(allergens) and allergens.strip():
+                message += f"⚠️ *Аллергены:*\n{allergens}\n\n"
+            if pd.notna(veg) and veg.strip():
+                message += f"🌱 *Можно ли веганам:*\n{veg}\n\n"
+            if pd.notna(details) and details.strip():
+                message += f"ℹ️ *Дополнительно:*\n{details}\n\n"
+
+            # Кнопки для возврата в меню
+            keyboard = [[InlineKeyboardButton("Назад", callback_data='main_menu')]]
+            reply_markup = InlineKeyboardMarkup(keyboard)
+
+            # Проверяем наличие ссылки на фото
+            if pd.notna(photo_url) and photo_url.strip():
+                try:
+                    await query.message.reply_photo(
+                        photo=photo_url, caption=message, parse_mode='Markdown', reply_markup=reply_markup
+                    )
+                except Exception:
+                    message += "\n🌐 Фото временно недоступно."
+                    await query.message.reply_text(message, parse_mode='Markdown', reply_markup=reply_markup)
+            else:
+                await query.message.reply_text(message, parse_mode='Markdown', reply_markup=reply_markup)
+        else:
+            await query.message.reply_text("Данные о выбранном блюде не найдены.")
 
 # Генерация кнопок для категории
 def get_buttons_for_category(category_name):
@@ -103,7 +149,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         dish_data = get_dish_by_id(dish_id)
 
         if dish_data:
-            name, description, ingredients, photo_url, details = dish_data
+            name, category, description, ingredients, photo_url, details, allergens, veg, features = dish_data
             message = f"*{name}*\n\n"
             if description:
                 message += f"*Описание:* {description}\n\n"
