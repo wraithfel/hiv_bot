@@ -5,6 +5,8 @@ import psycopg2
 import json
 import openai
 
+file_path = "useful_links.txt"
+
 # Загрузка конфигурации базы данных
 with open("db_config.json", "r", encoding="utf-8") as file:
     db_config = json.load(file)
@@ -15,18 +17,14 @@ with open("config.json", "r", encoding="utf-8") as file:
     TOKEN = config["BOT_TOKEN"]
     OPENAI_API_KEY = config["OPENAI_API_KEY"]
 
-file_path = "useful_links.txt"
-
 # Чтение содержимого файла
 with open(file_path, "r", encoding="utf-8") as file:  # encoding="utf-8" используется для поддержки кириллицы
     file_content = file.read()
 
 # Установка OpenAI API ключа
 openai.api_key = OPENAI_API_KEY
-
 client = OpenAI(api_key=OPENAI_API_KEY)
 
-# Функция для подключения к базе данных
 def connect_to_db():
     return psycopg2.connect(
         dbname=db_config["dbname"],
@@ -35,6 +33,59 @@ def connect_to_db():
         host=db_config["host"],
         port=db_config["port"]
     )
+
+def export_menu_to_json():
+    conn = connect_to_db()
+    cursor = conn.cursor()
+
+    # SQL-запрос для извлечения всех данных из таблицы
+    query = "SELECT * FROM full_menu"
+    json_file_path = "menu_data.json"
+
+    # Выполнение SQL-запроса
+    cursor.execute(query)
+
+    # Получение имен столбцов
+    columns = [desc[0] for desc in cursor.description]
+
+    # Формирование списка записей как словарей
+    rows = cursor.fetchall()
+    menu_data = [dict(zip(columns, row)) for row in rows]
+
+    # Запись данных в JSON-файл
+    with open(json_file_path, "w", encoding="utf-8") as json_file:
+        json.dump(menu_data, json_file, ensure_ascii=False, indent=4)
+
+    cursor.close()
+    conn.close()
+
+    print(f"Данные экспортированы в JSON-файл: {json_file_path}")
+    return json_file_path
+
+
+def create_vector_store():
+    csv_file_path = export_menu_to_json()
+    vector_store = client.beta.vector_stores.create(name="Menu Data Store")
+
+    with open(csv_file_path, "rb") as file_stream:
+        file_batch = client.beta.vector_stores.file_batches.upload_and_poll(
+            vector_store_id=vector_store.id,
+            files=[file_stream]
+        )
+
+    print("Vector Store создан с ID:", vector_store.id)
+    return vector_store.id
+
+def create_assistant_with_file_search(vector_store_id):
+    assistant = client.beta.assistants.create(
+        name="Restaurant Assistant",
+        instructions="Ты — помощник для обучения стажеров-официантов ресторана. Отвечай на вопросы о меню, напитках и сервисе.",
+        model="gpt-4o-mini",
+        tools=[{"type": "file_search"}],
+        tool_resources={"file_search": {"vector_store_ids": [vector_store_id]}}
+    )
+    print("Ассистент создан с ID:", assistant.id)
+    return assistant.id
 
 # Получение всех категорий блюд
 def get_categories():
@@ -45,37 +96,6 @@ def get_categories():
     cursor.close()
     conn.close()
     return categories
-
-# Получение всех блюд из меню
-def get_full_menu():
-    conn = connect_to_db()
-    cursor = conn.cursor()
-    cursor.execute("""
-        SELECT id, name, category, description, photo_url, features, 
-               ingredients, details, allergens, veg 
-        FROM full_menu 
-        ORDER BY id
-    """)
-    full_menu = [
-        {
-            "id": row[0],
-            "name": row[1],
-            "category": row[2],
-            "description": row[3],
-            "photo_url": row[4],
-            "features": row[5],
-            "ingredients": row[6],
-            "details": row[7],
-            "allergens": row[8],
-            "veg": row[9]
-        }
-        for row in cursor.fetchall()
-    ]
-    cursor.close()
-    conn.close()
-    return full_menu
-
-
 
 # Получение всех блюд в категории
 def get_dishes_by_category(category):
@@ -116,6 +136,14 @@ def add_to_history(context, user_id, role, content):
     # Ограничиваем историю до 5 элементов
     if len(context.user_data['conversation_history']) > 10:
         context.user_data['conversation_history'] = context.user_data['conversation_history'][-10:]
+
+
+# Генерация кнопок для категории
+def get_buttons_for_category(category_name):
+    dishes = get_dishes_by_category(category_name)
+    buttons = [[InlineKeyboardButton(dish["name"], callback_data=f"dish_{dish['id']}")] for dish in dishes]
+    buttons.append([InlineKeyboardButton("Назад", callback_data="main_menu")])
+    return buttons
 
 def parse_value(val):
     return val if val != "NaN" else "Отсутствуют"
@@ -177,13 +205,6 @@ async def send_dish_card(query, dish_data):
     else:
         await query.message.reply_text("Данные о выбранном блюде не найдены.")
 
-# Генерация кнопок для категории
-def get_buttons_for_category(category_name):
-    dishes = get_dishes_by_category(category_name)
-    buttons = [[InlineKeyboardButton(dish["name"], callback_data=f"dish_{dish['id']}")] for dish in dishes]
-    buttons.append([InlineKeyboardButton("Назад", callback_data="main_menu")])
-    return buttons
-
 # Обработчик основного меню
 async def handle_main_menu(query):
     categories = get_categories()
@@ -205,9 +226,9 @@ async def handle_category(query, category_name):
     reply_markup = InlineKeyboardMarkup(keyboard)
 
     if query.message.text:
-        await query.edit_message_text(f"Выберите блюдо из раздела '{category_name}':", reply_markup=reply_markup)
+        await query.edit_message_text(f"Выберите блюдо из раздела *{category_name}*:", parse_mode='Markdown', reply_markup=reply_markup)
     else:
-        await query.message.reply_text(f"Выберите блюдо из раздела '{category_name}':", reply_markup=reply_markup)
+        await query.message.reply_text(f"Выберите блюдо из раздела *{category_name}*:", parse_mode='Markdown', reply_markup=reply_markup)
 
 # Обработчик блюда
 async def handle_dish(query, dish_id):
@@ -276,8 +297,6 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         await query.message.reply_text("Извините, я не могу обработать этот запрос. Попробуйте снова.")
 
-
-# Обработчик текстового ввода для вопросов по блюду
 async def handle_question(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_message = update.message.text
     history = context.user_data.get('conversation_history', [])
@@ -285,43 +304,52 @@ async def handle_question(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # Добавляем новый запрос пользователя в историю
     add_to_history(context, update.effective_user.id, "user", user_message)
 
-    # Проверка на вопрос по блюду
+    # Проверка, что есть активное блюдо
     if 'awaiting_question_for_dish' in context.user_data:
         dish_data = context.user_data['awaiting_question_for_dish']
-        # Очистка данных о блюде
-        full_menu = get_full_menu()
 
-        # Добавляем данные о блюде в контекст
-        prompt = f"История общения:{history}Блюдо: {dish_data[1]}\nВсе сведения о блюде: {dish_data[2:]}\nВот все меню ресторана, c его помощью можно давать советы и брать информацию, но ты можешь также использовать свои знания{full_menu}Вопрос: {user_message}"
-        print(history)
+        # Формируем запрос для ассистента
+        user_prompt = f"Вопрос о блюде: {dish_data[1]}. {user_message} История общения:{history}"
 
-        # Отправка запроса к OpenAI API
         try:
-            response = client.chat.completions.create(
-                model="gpt-4o-mini",
-                messages=[
-                    {"role": "system", "content": "You are a helpful assistant."},
-                    {"role": "user", "content": prompt}
-                ]
+            waiting_message = await update.message.reply_text(
+                "⏳ Обработка запроса, пожалуйста, подождите..."
+            )
+            # Создаем поток
+            thread = client.beta.threads.create(
+                messages=[{"role": "user", "content": user_prompt}]
             )
 
-            # Получение ответа от модели
-            bot_response = response.choices[0].message.content
+            # Запускаем выполнение и ждем завершения
+            run = client.beta.threads.runs.create_and_poll(
+                thread_id=thread.id, assistant_id="asst_LQj1hbyuW3qwMhxO4ueLzg7x"
+            )
 
-            add_to_history(context, update.effective_user.id, "assistant", bot_response)
+            # Получаем список сообщений из выполнения
+            messages = list(client.beta.threads.messages.list(thread_id=thread.id, run_id=run.id))
 
-            keyboard = [
-                [InlineKeyboardButton("Завершить вопросы", callback_data=f'category_{dish_data[2]}')]
-            ]
-            reply_markup = InlineKeyboardMarkup(keyboard)
-            await update.message.reply_text(bot_response, parse_mode='Markdown', reply_markup=reply_markup)
+            # Обрабатываем первое сообщение
+            if messages:
+                message_content = messages[0].content[0].text.value
+                response_text = (
+                    f"{message_content}\n\n"
+                    "Вы можете задать следующий вопрос или нажать кнопку *Завершить вопросы*."
+                )
 
+                add_to_history(context, update.effective_user.id, "assistant", message_content)
+
+                # Отправляем ответ пользователю
+                keyboard = [
+                    [InlineKeyboardButton("Завершить вопросы", callback_data=f'category_{dish_data[2]}')]
+                ]
+                reply_markup = InlineKeyboardMarkup(keyboard)
+                await waiting_message.edit_text(response_text, parse_mode='Markdown', reply_markup=reply_markup)
+            else:
+                await update.message.reply_text("К сожалению, я не смог получить ответ.")
         except Exception as e:
-            await update.message.reply_text(f"Произошла ошибка при обработке запроса: {str(e)}")
+            await update.message.reply_text(f"Произошла ошибка: {e}")
     else:
-        await update.message.reply_text("Пожалуйста, выберите блюдо, чтобы задать вопрос.")
-
-
+        await update.message.reply_text("Пожалуйста, выберите блюдо для вопроса.")
 
 # Стартовое сообщение
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -330,12 +358,18 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
     await update.message.reply_text(
-        "Добро пожаловать в бот ресторана \"Хачапури и Вино\"! Нажмите 'Начать', чтобы перейти к выбору раздела.",
-        reply_markup=reply_markup
+        "🍷 Добро пожаловать в бот ресторана *Хачапури и Вино*! 🍴\n\n"
+        "👉 Нажмите *Начать*, чтобы перейти к выбору раздела!",
+        reply_markup=reply_markup,
+        parse_mode="Markdown"
     )
 
 # Запуск бота
 def main():
+    # Создаем Vector Store и ассистента
+    #vector_store_id = create_vector_store()
+    #assistant_id = create_assistant_with_file_search(vector_store_id)'''
+
     app = Application.builder().token(TOKEN).build()
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CallbackQueryHandler(button_handler))
