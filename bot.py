@@ -303,7 +303,6 @@ async def send_dish_card(query, dish_data):
                     reply_markup=reply_markup
                 )
             except Exception as e:
-                print(e)
                 message += "\n🌐 Фото временно недоступно."
                 await query.message.reply_text(
                     message,
@@ -400,6 +399,322 @@ async def handle_main_menu(query):
     else:
         await query.message.reply_text("Выберите раздел основного меню:", reply_markup=reply_markup)
 
+async def handle_take_order(query):
+    keyboard = [
+        [InlineKeyboardButton("Еда", callback_data='order_food')],
+        [InlineKeyboardButton("Напитки", callback_data='order_drinks')],
+        [InlineKeyboardButton("Назад", callback_data='welcome')]
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    await query.edit_message_text("Выберите категорию заказа:", reply_markup=reply_markup)
+
+async def handle_order_food(query):
+    categories = get_categories()
+    keyboard = [
+        [InlineKeyboardButton(category, callback_data=f'order_category_{category}')] for category in categories
+    ]
+    keyboard.append([InlineKeyboardButton("Назад", callback_data='take_order')])
+    reply_markup = InlineKeyboardMarkup(keyboard)
+
+    # Проверяем, совпадают ли текст и разметка с текущими
+    current_text = query.message.text if query.message.text else ""
+    new_text = "Выберите категорию еды:"
+
+    if current_text != new_text or query.message.reply_markup != reply_markup:
+        await query.edit_message_text(
+            new_text,
+            reply_markup=reply_markup
+        )
+    else:
+        print("Сообщение не изменено. Запрос на редактирование пропущен.")
+
+
+async def handle_order_drinks(query):
+    categories = get_drink_categories()
+    keyboard = [
+        [InlineKeyboardButton(category, callback_data=f'drink_order_category_{category}')] for category in categories
+    ]
+    keyboard.append([InlineKeyboardButton("Назад", callback_data='take_order')])
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    await query.edit_message_text("Выберите категорию напитков:", reply_markup=reply_markup)
+
+async def handle_drink_order_category(query, category_name):
+    subcategories = get_subcategories_by_category(category_name)
+    keyboard = [
+        [InlineKeyboardButton(subcategory, callback_data=f'drk_ord_sub_{category_name}_{subcategory}')]
+        for subcategory in subcategories
+    ]
+    keyboard.append([InlineKeyboardButton("Назад", callback_data='order_drinks')])
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    await query.edit_message_text(
+        f"Выберите подкатегорию из категории *{category_name}*:",
+        parse_mode='Markdown',
+        reply_markup=reply_markup
+    )
+async def handle_drink_order_subcategory(query, category_name, subcategory_name):
+    drinks = get_drinks_by_subcategory(category_name, subcategory_name)
+    keyboard = [
+        [InlineKeyboardButton(drink["name"], callback_data=f"order_drink_{drink['id']}")] for drink in drinks
+    ]
+    keyboard.append([InlineKeyboardButton("Назад", callback_data=f"drink_order_category_{category_name}")])
+    reply_markup = InlineKeyboardMarkup(keyboard)
+
+    # Проверяем, можно ли редактировать сообщение
+    if query.message.text:
+        await query.edit_message_text(
+            f"Напитки в подкатегории *{subcategory_name}*:",
+            parse_mode='Markdown',
+            reply_markup=reply_markup
+        )
+    else:
+        # Если исходное сообщение пустое или не текстовое, отправляем новое сообщение
+        await query.message.reply_text(
+            f"Напитки в подкатегории *{subcategory_name}*:",
+            parse_mode='Markdown',
+            reply_markup=reply_markup
+        )
+
+
+
+async def handle_order_drink(query, drink_id):
+    drink_data = get_drink_by_id(drink_id)
+    if drink_data:
+        # Извлекаем данные из записи о напитке
+        (
+            id, name, category, description, photo_url, notes,
+            ingredients, aroma_profile, taste_profile, sugar_content,
+            producer, gastropair, subcategory
+        ) = drink_data
+
+        # Формируем сообщение с карточкой напитка
+        message = f"🍷 *{name}*\n"
+        message += f"📂 Категория: {category}\n"
+        if subcategory:
+            message += f"🧾 Подкатегория: {subcategory}\n\n"
+
+        if description:
+            message += f"📖 *Описание:*\n{parse_value(description)}\n\n"
+        if ingredients:
+            message += f"📝 *Ингредиенты:*\n{parse_value(ingredients)}\n\n"
+        if aroma_profile:
+            message += f"👃 *Ароматический профиль:*\n{parse_value(aroma_profile)}\n\n"
+        if taste_profile:
+            message += f"👅 *Вкусовой профиль:*\n{parse_value(taste_profile)}\n\n"
+        if sugar_content:
+            message += f"🍬 *Содержание сахара:*\n{parse_value(sugar_content)}\n\n"
+        if producer:
+            message += f"🏭 *Производитель:*\n{parse_value(producer)}\n\n"
+        if gastropair:
+            message += f"🍽 *Гастропара:*\n{parse_value(gastropair)}\n\n"
+        if notes:
+            message += f"📝 *Примечания:*\n{parse_value(notes)}\n\n"
+
+        keyboard = [
+            [InlineKeyboardButton("Задать вопрос по напитку", callback_data=f"ask_order_drink_{drink_data[0]}")],
+            [InlineKeyboardButton("Подтвердить выбор напитка", callback_data=f"drink_ok_{drink_data[0]}")],
+            [InlineKeyboardButton("Назад к подкатегории", callback_data=f'drk_ord_sub_{category}_{subcategory}')]
+        ]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+
+        # Отправляем сообщение с фото или текстом, если фото недоступно
+        if photo_url:
+            try:
+                await query.message.reply_photo(
+                    photo=photo_url,
+                    caption=message,
+                    parse_mode='Markdown',
+                    reply_markup=reply_markup
+                )
+            except Exception as e:
+                print(e)
+                message += "\n🌐 Фото временно недоступно."
+                await query.message.reply_text(
+                    message,
+                    parse_mode='Markdown',
+                    reply_markup=reply_markup
+                )
+        else:
+            await query.message.reply_text(
+                message,
+                parse_mode='Markdown',
+                reply_markup=reply_markup
+            )
+    else:
+        await query.message.reply_text("Данные о выбранном напитке не найдены.")
+
+async def handle_drink_ok(query, drink_id, context):
+    # Получаем данные о выбранном напитке
+    drink_data = get_drink_by_id(drink_id)
+    if not drink_data:
+        await query.message.reply_text("Информация о выбранном напитке недоступна.")
+        return
+
+    # Сохраняем напиток в контексте
+    context.user_data['current_drink'] = drink_data
+
+    # Запрашиваем у пользователя количество напитка
+    await query.message.reply_text(
+        f"Вы выбрали *{drink_data[1]}*.\n\nВведите количество этого напитка:",
+        parse_mode='Markdown'
+    )
+
+
+async def handle_order_category(query, category_name):
+    dishes = get_dishes_by_category(category_name)
+    buttons = [
+        [InlineKeyboardButton(dish["name"], callback_data=f"order_dish_{dish['id']}")]
+        for dish in dishes
+    ]
+    buttons.append([InlineKeyboardButton("Назад", callback_data=f'order_food')])
+    reply_markup = InlineKeyboardMarkup(buttons)
+    try:
+        # Проверяем, можно ли редактировать сообщение
+        if query.message.text:
+            await query.edit_message_text(
+                f"Выберите блюдо из категории *{category_name}*:",
+                parse_mode='Markdown',
+                reply_markup=reply_markup
+            )
+        else:
+            # Если исходное сообщение пустое или не текстовое, отправляем новое
+            await query.message.reply_text(
+                f"Выберите блюдо из категории *{category_name}*:",
+                parse_mode='Markdown',
+                reply_markup=reply_markup
+            )
+    except Exception as e:
+        # Логируем ошибку
+        print(f"Ошибка при обработке категории: {e}")
+        await query.message.reply_text(
+            "Произошла ошибка при обработке вашего запроса. Попробуйте снова."
+        )
+
+
+async def handle_order_dish(query, dish_id):
+    dish_data = get_dish_by_id(dish_id)
+    if dish_data:
+        # Извлекаем данные из записи о блюде
+        (
+            id, name, category, description, photo_url, features,
+            ingredients, details, allergens, veg
+        ) = dish_data
+
+        # Формируем сообщение с карточкой блюда
+        message = f"🍴 *{name}*\n"
+        message += f"📂 Категория: {category}\n\n"
+
+        if description:
+            message += f"📖 *Описание:*\n{parse_value(description)}\n\n"
+        if features:
+            message += f"⭐ *Особенности:*\n{parse_value(features)}\n\n"
+        if ingredients:
+            message += f"📝 *Ингредиенты:*\n{parse_value(ingredients)}\n\n"
+        if allergens:
+            message += f"⚠️ *Аллергены:*\n{parse_value(allergens)}\n\n"
+        if veg:
+            message += f"🌱 *Подходит вегетарианцам/веганам:* {parse_value(veg)}\n\n"
+
+        keyboard = [
+            [InlineKeyboardButton("Задать вопрос по блюду", callback_data=f"ask_order_dish_{dish_data[0]}")],
+            [InlineKeyboardButton("Подтвердить выбор блюда", callback_data=f"dish_ok_{dish_data[0]}")],
+            [InlineKeyboardButton("Назад к блюдам категории", callback_data=f'order_category_{dish_data[2]}')]
+        ]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+
+        # Отправляем сообщение с фото или текстом, если фото недоступно
+        if photo_url:
+            try:
+                await query.message.reply_photo(
+                    photo=photo_url,
+                    caption=message,
+                    parse_mode='Markdown',
+                    reply_markup=reply_markup
+                )
+            except Exception as e:
+                print(e)
+                message += "\n🌐 Фото временно недоступно."
+                await query.message.reply_text(
+                    message,
+                    parse_mode='Markdown',
+                    reply_markup=reply_markup
+                )
+        else:
+            await query.message.reply_text(
+                message,
+                parse_mode='Markdown',
+                reply_markup=reply_markup
+            )
+    else:
+        await query.message.reply_text("Данные о выбранном блюде не найдены.")
+
+async def handle_dish_ok(query, dish_id, context):
+    # Получаем данные о выбранном блюде
+    dish_data = get_dish_by_id(dish_id)
+    if not dish_data:
+        await query.message.reply_text("Информация о выбранном блюде недоступна.")
+        return
+
+    # Сохраняем блюдо в контексте
+    context.user_data['current_dish'] = dish_data
+
+    # Запрашиваем у пользователя количество блюда
+    await query.message.reply_text(
+        f"Вы выбрали *{dish_data[1]}*.\n\nВведите количество этого блюда:",
+        parse_mode='Markdown'
+    )
+
+async def handle_finish_order(query, context):
+    # Проверяем, есть ли оформленный заказ
+    order = context.user_data.get('order', [])
+    if not order:
+        await query.message.reply_text(
+            "Ваш заказ пуст. Пожалуйста, выберите блюда или напитки, прежде чем завершить заказ.",
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton("Вернуться к выбору еды", callback_data="order_food")],
+                [InlineKeyboardButton("Вернуться к выбору напитков", callback_data="order_drinks")],
+                [InlineKeyboardButton("Главное меню", callback_data="welcome")]
+            ])
+        )
+        return
+
+    # Формируем сообщение с заказом
+    message = "📝 *Ваш заказ:*\n\n"
+
+    for item in order:
+        if 'dish' in item:  # Если это блюдо
+            dish_name = item['dish'][1]
+            quantity = item['quantity']
+            if item['comment'] != None:
+                comment = item['comment']
+                message += f"🍽 *{dish_name}* x{quantity}\n  📋 Комментарий: {comment}\n\n"
+            else:
+                message += f"🍽 *{dish_name}* x{quantity}\n\n"
+
+        elif 'drink' in item:  # Если это напиток
+            drink_name = item['drink'][1]
+            quantity = item['quantity']
+            if item['comment'] != None:
+                comment = item['comment']
+                message += f"🍷 *{drink_name}* x{quantity}\n  📋 Комментарий: {comment}\n\n"
+            else:
+                message += f"🍷 *{drink_name}* x{quantity}\n\n"
+
+
+    # Очищаем заказ из контекста
+    context.user_data.pop('order', None)
+
+    # Отправляем сообщение с итоговым заказом
+    await query.message.reply_text(
+        message,
+        parse_mode='Markdown',
+        reply_markup=InlineKeyboardMarkup([
+            [InlineKeyboardButton("Вернуться в главное меню", callback_data="welcome")]
+        ])
+    )
+
+
+
+
 async def handle_drinks_menu(query):
     categories = get_drink_categories()
     keyboard = [
@@ -457,7 +772,7 @@ async def handle_drink_category(query, category_name):
 async def handle_drink_subcategory(query, category_name, subcategory_name):
     drinks = get_drinks_by_subcategory(category_name, subcategory_name)
     keyboard = [
-        [InlineKeyboardButton(drink["name"], callback_data=f"drink_{drink['id']}")] for drink in drinks
+        [InlineKeyboardButton(drink["name"], callback_data=f"get_drink_{drink['id']}")] for drink in drinks
     ]
     keyboard.append([InlineKeyboardButton("Назад", callback_data=f"drink_category_{category_name}")])
     reply_markup = InlineKeyboardMarkup(keyboard)
@@ -504,6 +819,7 @@ async def handle_welcome(query):
         [InlineKeyboardButton("Напитки", callback_data='drinks')],
         [InlineKeyboardButton("Особенности работы", callback_data='work_features')],
         [InlineKeyboardButton("Тестирование", callback_data='test')],
+        [InlineKeyboardButton("Принять заказ", callback_data='take_order')],
         [InlineKeyboardButton("Полезные ссылки", callback_data='links')],
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
@@ -522,6 +838,115 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await handle_main_menu(query)
     elif data in get_categories():
         await handle_category(query, data)
+    elif data == 'take_order':
+        await handle_take_order(query)
+    elif data == "no_comment_dish":
+        # Если нажата кнопка "Без комментария", переходим к обработке как текстового ввода
+
+        # Получаем данные о текущем блюде и количестве
+        current_dish = context.user_data.pop('current_dish', None)
+        current_quantity = context.user_data.pop('current_quantity', None)
+
+        if current_dish and current_quantity:
+            # Сохраняем блюдо, количество и комментарий в заказ
+            if 'order' not in context.user_data:
+                context.user_data['order'] = []
+            context.user_data['order'].append({
+                "dish": current_dish,
+                "quantity": current_quantity,
+                "comment": None
+            })
+
+            # Уведомляем пользователя о добавлении блюда
+            await query.message.reply_text(
+                f"Блюдо *{current_dish[1]}* x{current_quantity} добавлено в заказ!\n"
+                "Выберите следующее блюдо или завершите заказ.",
+                parse_mode='Markdown',
+                reply_markup=InlineKeyboardMarkup([
+                    [InlineKeyboardButton("Завершить заказ", callback_data="finish_order")],
+                    [InlineKeyboardButton("Продолжить выбор", callback_data="take_order")],
+                ])
+            )
+        else:
+            await query.message.reply_text("Произошла ошибка: не удалось обработать заказ.")
+        return
+    elif data == "no_comment_drink":
+        # Если нажата кнопка "Без комментария", переходим к обработке как текстового ввода
+
+        # Получаем данные о текущем блюде и количестве
+        current_drink = context.user_data.pop('current_drink', None)
+        current_quantity = context.user_data.pop('current_quantity', None)
+
+        if current_drink and current_quantity:
+            # Сохраняем напиток, количество и комментарий в заказ
+            if 'order' not in context.user_data:
+                context.user_data['order'] = []
+            context.user_data['order'].append({
+                "drink": current_drink,
+                "quantity": current_quantity,
+                "comment": None
+            })
+
+            # Уведомляем пользователя о добавлении напитка
+            await query.message.reply_text(
+                f"Напиток *{current_drink[1]}* x{current_quantity} добавлен в заказ!\n"
+                "Выберите следующий напиток или завершите заказ.",
+                parse_mode='Markdown',
+                reply_markup=InlineKeyboardMarkup([
+                    [InlineKeyboardButton("Завершить заказ", callback_data="finish_order")],
+                    [InlineKeyboardButton("Продолжить выбор", callback_data="take_order")],
+                ])
+            )
+        else:
+            await query.message.reply_text("Произошла ошибка: не удалось обработать заказ.")
+        return
+
+        category_name = data.split('_')[2]
+        await handle_order_category(query, category_name)
+    elif data == 'order_food':
+        await handle_order_food(query)
+    elif data.startswith('order_category_'):
+        category_name = data.split('_')[2]
+        await handle_order_category(query, category_name)
+    elif data.startswith('order_dish_'):
+        context.user_data.pop('awaiting_question_for_order_dish', None)
+        dish_id = int(data.split('_')[2])
+        await handle_order_dish(query, dish_id)
+    elif data.startswith("ask_order_dish_"):
+        dish_id = int(data.split("_")[3])  # Извлекаем ID блюда из callback_data
+        dish_data = get_dish_by_id(dish_id)
+        # Запрашиваем у пользователя вопрос по блюду
+        await query.message.reply_text("Введите ваш вопрос по этому блюду:")
+        context.user_data['awaiting_question_for_order_dish'] = dish_data
+
+    elif data == 'order_drinks':
+        await handle_order_drinks(query)
+    elif data.startswith('drink_order_category_'):
+        category_name = data.split('_')[3]
+        print(category_name)
+        await handle_drink_order_category(query, category_name)
+    elif data.startswith('drk_ord_sub_'):
+        print('tcnm')
+        _, _, _, category_name, subcategory_name = data.split('_')
+        await handle_drink_order_subcategory(query, category_name, subcategory_name)
+    elif data.startswith('order_drink_'):
+        context.user_data.pop('awaiting_question_for_order_drink', None)
+        drink_id = int(data.split('_')[2])
+        await handle_order_drink(query, drink_id)
+    elif data.startswith('drink_ok_'):
+        drink_id = int(data.split('_')[2])
+        await handle_drink_ok(query, drink_id, context)
+    elif data.startswith("ask_order_drink_"):
+        drink_id = int(data.split("_")[3])  # Извлекаем ID блюда из callback_data
+        drink_data = get_drink_by_id(drink_id)
+        # Запрашиваем у пользователя вопрос по блюду
+        await query.message.reply_text("Введите ваш вопрос по этому блюду:")
+        context.user_data['awaiting_question_for_order_drink'] = drink_data
+    elif data.startswith("dish_ok_"):
+        dish_id = int(data.split('_')[2])
+        await handle_dish_ok(query, dish_id, context)
+    elif data == "finish_order":
+        await handle_finish_order(query, context)
     elif data == 'drinks':  # Главное меню напитков
         await handle_drinks_menu(query)
     elif data.startswith("drink_category_"):  # Выбор категории напитков
@@ -530,22 +955,23 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif data.startswith("drink_subcategory_"):  # Выбор подкатегории напитков
         _, _, category_name, subcategory_name = data.split("_")
         await handle_drink_subcategory(query, category_name, subcategory_name)
-    elif data.startswith("drink_"):  # Выбор конкретного напитка
-        drink_id = int(data.split("_")[1])
+    elif data.startswith("get_drink_"):  # Выбор конкретного напитка
+        drink_id = int(data.split("_")[2])
         await handle_drink(query, drink_id)
     elif data.startswith("dish_"):
         dish_id = int(data.split("_")[1])
         await handle_dish(query, dish_id)
     elif data.startswith("category_"):
-        context.user_data['awaiting_question_for_dish'] = None
+        context.user_data.pop('awaiting_question_for_dish')
         category_name = data.split("_")[1]
         await query.message.reply_text("Вопросы по текущему блюду завершены. Вы можете выбрать другое блюдо.")
         await handle_category(query, category_name)
-    elif data.startswith("drink_subcategory_"):
-        context.user_data['awaiting_question_for_drink'] = None
+    elif data.startswith("back_drink_"):
+        context.user_data.pop('awaiting_question_for_drink')
         category_name = data.split("_")[2]
         subcategory_name = data.split("_")[3]
         await query.message.reply_text("Вопросы по текущему напитку завершены. Вы можете выбрать другой напиток.")
+        print('тут')
         await handle_drink_subcategory(query, category_name, subcategory_name)
     elif data.startswith("ask_drink_"):  # Задать вопрос по напитку
         drink_id = int(data.split("_")[2])
@@ -590,8 +1016,107 @@ async def handle_question(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # Добавляем новый запрос пользователя в историю
     add_to_history(context, update.effective_user.id, "user", user_message)
 
+    if 'current_dish' in context.user_data and 'current_quantity' not in context.user_data:
+        try:
+            # Преобразуем ввод в число
+            quantity = int(user_message)
+            if quantity <= 0:
+                await update.message.reply_text("Пожалуйста, введите положительное число.")
+                return
+
+            # Сохраняем количество
+            context.user_data['current_quantity'] = quantity
+
+            keyboard = [
+                [InlineKeyboardButton("Без комментария", callback_data="no_comment_dish")],
+            ]
+            reply_markup = InlineKeyboardMarkup(keyboard)
+            await update.message.reply_text(
+                "Добавьте комментарий к блюду (или нажмите 'Без комментария'):",
+                reply_markup=reply_markup
+            )
+        except ValueError:
+            await update.message.reply_text("Пожалуйста, введите корректное количество (число).")
+
+        # Проверяем, ожидается ли ввод комментария
+    elif 'current_dish' in context.user_data and 'current_quantity' in context.user_data:
+        # Получаем данные о текущем блюде и количестве
+        current_dish = context.user_data.pop('current_dish')
+        current_quantity = context.user_data.pop('current_quantity')
+        comment = user_message if user_message.strip().lower() != "без комментария" else "Без комментария"
+
+        # Сохраняем блюдо, количество и комментарий в заказ
+        if 'order' not in context.user_data:
+            context.user_data['order'] = []
+        context.user_data['order'].append({
+            "dish": current_dish,
+            "quantity": current_quantity,
+            "comment": comment
+        })
+
+        # Уведомляем пользователя о добавлении блюда
+        await update.message.reply_text(
+            f"Блюдо *{current_dish[1]}* x{current_quantity} добавлено в заказ!\n"
+            "Выберите следующее блюдо или завершите заказ.",
+            parse_mode='Markdown',
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton("Завершить заказ", callback_data="finish_order")],
+                [InlineKeyboardButton("Продолжить выбор", callback_data="take_order"), ]
+            ])
+        )
+
+    elif 'current_drink' in context.user_data and 'current_quantity' not in context.user_data:
+        try:
+            # Преобразуем ввод в число
+            quantity = int(user_message)
+            if quantity <= 0:
+                await update.message.reply_text("Пожалуйста, введите положительное число.")
+                return
+
+            # Сохраняем количество
+            context.user_data['current_quantity'] = quantity
+
+            keyboard = [
+                [InlineKeyboardButton("Без комментария", callback_data="no_comment_drink")],
+            ]
+            reply_markup = InlineKeyboardMarkup(keyboard)
+            await update.message.reply_text(
+                "Добавьте комментарий к напитку (или нажмите 'Без комментария'):",
+                reply_markup=reply_markup
+            )
+        except ValueError:
+            await update.message.reply_text("Пожалуйста, введите корректное количество (число).")
+
+    # Проверяем, ожидается ли ввод комментария
+    elif 'current_drink' in context.user_data and 'current_quantity' in context.user_data:
+        # Получаем данные о текущем напитке и количестве
+        current_drink = context.user_data.pop('current_drink')
+        current_quantity = context.user_data.pop('current_quantity')
+        comment = user_message if user_message.strip().lower() != "без комментария" else "Без комментария"
+
+        # Сохраняем напиток, количество и комментарий в заказ
+        if 'order' not in context.user_data:
+            context.user_data['order'] = []
+        context.user_data['order'].append({
+            "drink": current_drink,
+            "quantity": current_quantity,
+            "comment": comment
+        })
+
+        # Уведомляем пользователя о добавлении напитка
+        await update.message.reply_text(
+            f"Напиток *{current_drink[1]}* x{current_quantity} добавлен в заказ!\n"
+            "Выберите следующий напиток или завершите заказ.",
+            parse_mode='Markdown',
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton("Завершить заказ", callback_data="finish_order")],
+                [InlineKeyboardButton("Продолжить выбор", callback_data="take_order"), ]
+            ])
+        )
+
     # Проверка, что есть активное блюдо
-    if 'awaiting_question_for_dish' in context.user_data:
+    elif 'awaiting_question_for_dish' in context.user_data:
+        print(context.user_data['awaiting_question_for_dish'])
         dish_data = context.user_data['awaiting_question_for_dish']
 
         # Формируем запрос для ассистента
@@ -639,6 +1164,7 @@ async def handle_question(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         # Формируем запрос для ассистента
         user_prompt = f"Вопрос о напитке: {drink_data[1]}. {user_message} История общения: {history}"
+        print(user_prompt)
 
         try:
             waiting_message = await update.message.reply_text(
@@ -669,7 +1195,95 @@ async def handle_question(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
                 # Отправляем ответ пользователю
                 keyboard = [
-                    [InlineKeyboardButton("Завершить вопросы", callback_data=f'drink_subcategory_{drink_data[2]}_{drink_data[-1]}')]
+                    [InlineKeyboardButton("Завершить вопросы", callback_data=f'back_drink_{drink_data[2]}_{drink_data[-1]}')]
+                ]
+                reply_markup = InlineKeyboardMarkup(keyboard)
+                await waiting_message.edit_text(response_text, parse_mode='Markdown', reply_markup=reply_markup)
+            else:
+                await update.message.reply_text("К сожалению, я не смог получить ответ.")
+        except Exception as e:
+            await update.message.reply_text(f"Произошла ошибка: {e}")
+    elif 'awaiting_question_for_order_dish' in context.user_data:
+        dish_data = context.user_data['awaiting_question_for_order_dish']
+        print(dish_data)
+
+        # Формируем запрос для ассистента
+        user_prompt = f"Вопрос о блюде: {dish_data[1]}. {user_message} История общения:{history}"
+
+        try:
+            waiting_message = await update.message.reply_text(
+                "⏳ Обработка запроса, пожалуйста, подождите..."
+            )
+            # Создаем поток
+            thread = client.beta.threads.create(
+                messages=[{"role": "user", "content": user_prompt}]
+            )
+
+            # Запускаем выполнение и ждем завершения
+            run = client.beta.threads.runs.create_and_poll(
+                thread_id=thread.id, assistant_id="asst_gVj6evsMb8FiODO9BPZH39zr"
+            )
+
+            # Получаем список сообщений из выполнения
+            messages = list(client.beta.threads.messages.list(thread_id=thread.id, run_id=run.id))
+
+            # Обрабатываем первое сообщение
+            if messages:
+                message_content = messages[0].content[0].text.value
+                response_text = (
+                    f"{message_content}\n\n"
+                    "Вы можете задать следующий вопрос или нажать кнопку *Завершить вопросы*."
+                )
+
+                add_to_history(context, update.effective_user.id, "assistant", message_content)
+
+                # Отправляем ответ пользователю
+                keyboard = [
+                    [InlineKeyboardButton("Завершить вопросы", callback_data=f'order_dish_{dish_data[0]}')]
+                ]
+                reply_markup = InlineKeyboardMarkup(keyboard)
+                await waiting_message.edit_text(response_text, parse_mode='Markdown', reply_markup=reply_markup)
+            else:
+                await update.message.reply_text("К сожалению, я не смог получить ответ.")
+        except Exception as e:
+            await update.message.reply_text(f"Произошла ошибка: {e}")
+    elif 'awaiting_question_for_order_drink' in context.user_data:
+        print('да')
+        drink_data = context.user_data['awaiting_question_for_order_drink']
+
+        # Формируем запрос для ассистента
+        user_prompt = f"Вопрос о напитке: {drink_data[1]}. {user_message} История общения:{history}"
+
+        try:
+            waiting_message = await update.message.reply_text(
+                "⏳ Обработка запроса, пожалуйста, подождите..."
+            )
+            # Создаем поток
+            thread = client.beta.threads.create(
+                messages=[{"role": "user", "content": user_prompt}]
+            )
+
+            # Запускаем выполнение и ждем завершения
+            run = client.beta.threads.runs.create_and_poll(
+                thread_id=thread.id, assistant_id="asst_gVj6evsMb8FiODO9BPZH39zr"
+            )
+
+            # Получаем список сообщений из выполнения
+            messages = list(client.beta.threads.messages.list(thread_id=thread.id, run_id=run.id))
+
+            # Обрабатываем первое сообщение
+            if messages:
+                message_content = messages[0].content[0].text.value
+                response_text = (
+                    f"{message_content}\n\n"
+                    "Вы можете задать следующий вопрос или нажать кнопку *Завершить вопросы*."
+                )
+
+                add_to_history(context, update.effective_user.id, "assistant", message_content)
+
+                # Отправляем ответ пользователю
+                keyboard = [
+                    [InlineKeyboardButton("Завершить вопросы", callback_data=f'order_drink_{drink_data[0]}')]
                 ]
                 reply_markup = InlineKeyboardMarkup(keyboard)
                 await waiting_message.edit_text(response_text, parse_mode='Markdown', reply_markup=reply_markup)
@@ -680,6 +1294,7 @@ async def handle_question(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     else:
         await update.message.reply_text("Пожалуйста, выберите блюдо для вопроса.")
+
 
 # Стартовое сообщение
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
