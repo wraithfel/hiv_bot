@@ -139,6 +139,270 @@ def create_assistant_with_combined_file_search(vector_store_id):
     print("Ассистент создан с ID:", assistant.id)
     return assistant.id
 
+# Чтение текста из файла
+def read_text_from_file(file_path):
+    try:
+        with open(file_path, "r", encoding="utf-8") as file:
+            return file.read()
+    except FileNotFoundError:
+        return "Файл с информацией не найден."
+    except Exception as e:
+        return f"Произошла ошибка при чтении файла: {e}"
+
+# Обработчики для смен
+async def handle_morning_shift(query):
+    text = read_text_from_file("morning_shift.txt")
+    keyboard = [[InlineKeyboardButton("Назад", callback_data="work_features")]]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    await query.edit_message_text(text, parse_mode="Markdown", reply_markup=reply_markup)
+
+async def handle_day_shift(query):
+    text = read_text_from_file("day_shift.txt")
+    keyboard = [[InlineKeyboardButton("Назад", callback_data="work_features")]]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    await query.edit_message_text(text, parse_mode="Markdown", reply_markup=reply_markup)
+
+async def handle_evening_shift(query):
+    # Читаем текст из файла
+    with open("night_shift.txt", "r", encoding="utf-8") as file:
+        text = file.read()
+
+    # Разделяем текст на части не более 4096 символов
+    parts = [text[i:i + 3940] for i in range(0, len(text), 3940)]
+
+    # Отправляем каждую часть текста как отдельное сообщение
+    for i, part in enumerate(parts):
+        keyboard = []
+        # Добавляем кнопку "Назад" только к последнему сообщению
+        if i == len(parts) - 1:
+            keyboard = [[InlineKeyboardButton("Назад", callback_data="work_features")]]
+
+        reply_markup = InlineKeyboardMarkup(keyboard) if keyboard else None
+
+        # Если это первая часть, редактируем текущее сообщение
+        if i == 0:
+            await query.edit_message_text(part, parse_mode='Markdown', reply_markup=reply_markup)
+        else:
+            # Если это последующие части, отправляем новые сообщения
+            await query.message.reply_text(part, parse_mode='Markdown', reply_markup=reply_markup)
+
+async def handle_iiko(query):
+    # Читаем текст из файла
+    with open("iiko.txt", "r", encoding="utf-8") as file:
+        text = file.read()
+
+    # Разделяем текст на части не более 4096 символов
+    parts = [text[i:i + 3940] for i in range(0, len(text), 3940)]
+
+    # Отправляем каждую часть текста как отдельное сообщение
+    for i, part in enumerate(parts):
+        keyboard = []
+        # Добавляем кнопку "Назад" только к последнему сообщению
+        if i == len(parts) - 1:
+            keyboard = [[InlineKeyboardButton("Назад", callback_data="work_features")]]
+
+        reply_markup = InlineKeyboardMarkup(keyboard) if keyboard else None
+
+        # Если это первая часть, редактируем текущее сообщение
+        if i == 0:
+            await query.edit_message_text(part, parse_mode='Markdown', reply_markup=reply_markup)
+        else:
+            # Если это последующие части, отправляем новые сообщения
+            await query.message.reply_text(part, parse_mode='Markdown', reply_markup=reply_markup)
+
+async def handle_dating(query):
+    # Читаем текст из файла
+    with open("dating.txt", "r", encoding="utf-8") as file:
+        text = file.read()
+
+    # Разделяем текст на части не более 4096 символов
+    parts = [text[i:i + 3940] for i in range(0, len(text), 3940)]
+
+    # Отправляем каждую часть текста как отдельное сообщение
+    for i, part in enumerate(parts):
+        keyboard = []
+        # Добавляем кнопку "Назад" только к последнему сообщению
+        if i == len(parts) - 1:
+            keyboard = [[InlineKeyboardButton("Назад", callback_data="work_features")]]
+
+        reply_markup = InlineKeyboardMarkup(keyboard) if keyboard else None
+
+        # Если это первая часть, редактируем текущее сообщение
+        if i == 0:
+            await query.edit_message_text(part, parse_mode='Markdown', reply_markup=reply_markup)
+        else:
+            # Если это последующие части, отправляем новые сообщения
+            await query.message.reply_text(part, parse_mode='Markdown', reply_markup=reply_markup)
+
+async def handle_base(query):
+    # Читаем текст из файла
+    with open("base.txt", "r", encoding="utf-8") as file:
+        text = file.read()
+
+    # Разделяем текст на части не более 4096 символов
+    parts = [text[i:i + 3907] for i in range(0, len(text), 3907)]
+
+    # Отправляем каждую часть текста как отдельное сообщение
+    for i, part in enumerate(parts):
+        keyboard = []
+        # Добавляем кнопку "Назад" только к последнему сообщению
+        if i == len(parts) - 1:
+            keyboard = [[InlineKeyboardButton("Назад", callback_data="work_features")]]
+
+        reply_markup = InlineKeyboardMarkup(keyboard) if keyboard else None
+
+        # Если это первая часть, редактируем текущее сообщение
+        if i == 0:
+            await query.edit_message_text(part, parse_mode='Markdown', reply_markup=reply_markup)
+        else:
+            # Если это последующие части, отправляем новые сообщения
+            await query.message.reply_text(part, parse_mode='Markdown', reply_markup=reply_markup)
+
+
+async def handle_bring(query):
+    # Читаем текст из файла
+    with open("bring.txt", "r", encoding="utf-8") as file:
+        text = file.read()
+
+    # Разделяем текст на части не более 4096 символов
+    parts = [text[i:i + 4000] for i in range(0, len(text), 4000)]
+
+    # Отправляем каждую часть текста как отдельное сообщение
+    for i, part in enumerate(parts):
+        keyboard = []
+        # Добавляем кнопку "Назад" только к последнему сообщению
+        if i == len(parts) - 1:
+            keyboard = [[InlineKeyboardButton("Назад", callback_data="work_features")]]
+
+        reply_markup = InlineKeyboardMarkup(keyboard) if keyboard else None
+
+        # Если это первая часть, редактируем текущее сообщение
+        if i == 0:
+            await query.edit_message_text(part, parse_mode='Markdown', reply_markup=reply_markup)
+        else:
+            # Если это последующие части, отправляем новые сообщения
+            await query.message.reply_text(part, parse_mode='Markdown', reply_markup=reply_markup)
+
+async def handle_service(query):
+    # Читаем текст из файла
+    with open("service.txt", "r", encoding="utf-8") as file:
+        text = file.read()
+
+    # Разделяем текст на части не более 4096 символов
+    parts = [text[i:i + 4000] for i in range(0, len(text), 4000)]
+
+    # Отправляем каждую часть текста как отдельное сообщение
+    for i, part in enumerate(parts):
+        keyboard = []
+        # Добавляем кнопку "Назад" только к последнему сообщению
+        if i == len(parts) - 1:
+            keyboard = [[InlineKeyboardButton("Назад", callback_data="work_features")]]
+
+        reply_markup = InlineKeyboardMarkup(keyboard) if keyboard else None
+
+        # Если это первая часть, редактируем текущее сообщение
+        if i == 0:
+            await query.edit_message_text(part, parse_mode='Markdown', reply_markup=reply_markup)
+        else:
+            # Если это последующие части, отправляем новые сообщения
+            await query.message.reply_text(part, parse_mode='Markdown', reply_markup=reply_markup)
+
+async def handle_host(query):
+    # Читаем текст из файла
+    with open("host.txt", "r", encoding="utf-8") as file:
+        text = file.read()
+
+    # Разделяем текст на части не более 4096 символов
+    parts = [text[i:i + 4000] for i in range(0, len(text), 4000)]
+
+    # Отправляем каждую часть текста как отдельное сообщение
+    for i, part in enumerate(parts):
+        keyboard = []
+        # Добавляем кнопку "Назад" только к последнему сообщению
+        if i == len(parts) - 1:
+            keyboard = [[InlineKeyboardButton("Назад", callback_data="work_features")]]
+
+        reply_markup = InlineKeyboardMarkup(keyboard) if keyboard else None
+
+        # Если это первая часть, редактируем текущее сообщение
+        if i == 0:
+            await query.edit_message_text(part, parse_mode='Markdown', reply_markup=reply_markup)
+        else:
+            # Если это последующие части, отправляем новые сообщения
+            await query.message.reply_text(part, parse_mode='Markdown', reply_markup=reply_markup)
+
+async def handle_delivery(query):
+    # Читаем текст из файла
+    with open("delivery.txt", "r", encoding="utf-8") as file:
+        text = file.read()
+
+    # Разделяем текст на части не более 4096 символов
+    parts = [text[i:i + 4000] for i in range(0, len(text), 4000)]
+
+    # Отправляем каждую часть текста как отдельное сообщение
+    for i, part in enumerate(parts):
+        keyboard = []
+        # Добавляем кнопку "Назад" только к последнему сообщению
+        if i == len(parts) - 1:
+            keyboard = [[InlineKeyboardButton("Назад", callback_data="work_features")]]
+
+        reply_markup = InlineKeyboardMarkup(keyboard) if keyboard else None
+
+        # Если это первая часть, редактируем текущее сообщение
+        if i == 0:
+            await query.edit_message_text(part, parse_mode='Markdown', reply_markup=reply_markup)
+        else:
+            # Если это последующие части, отправляем новые сообщения
+            await query.message.reply_text(part, parse_mode='Markdown', reply_markup=reply_markup)
+
+async def handle_bar(query):
+    # Читаем текст из файла
+    with open("bar.txt", "r", encoding="utf-8") as file:
+        text = file.read()
+
+    # Разделяем текст на части не более 4096 символов
+    parts = [text[i:i + 4000] for i in range(0, len(text), 4000)]
+
+    # Отправляем каждую часть текста как отдельное сообщение
+    for i, part in enumerate(parts):
+        keyboard = []
+        # Добавляем кнопку "Назад" только к последнему сообщению
+        if i == len(parts) - 1:
+            keyboard = [[InlineKeyboardButton("Назад", callback_data="work_features")]]
+
+        reply_markup = InlineKeyboardMarkup(keyboard) if keyboard else None
+
+        # Если это первая часть, редактируем текущее сообщение
+        if i == 0:
+            await query.edit_message_text(part, parse_mode='Markdown', reply_markup=reply_markup)
+        else:
+            # Если это последующие части, отправляем новые сообщения
+            await query.message.reply_text(part, parse_mode='Markdown', reply_markup=reply_markup)
+
+async def handle_special(query):
+    # Читаем текст из файла
+    with open("work.txt", "r", encoding="utf-8") as file:
+        text = file.read()
+
+    # Разделяем текст на части не более 4096 символов
+    parts = [text[i:i + 4000] for i in range(0, len(text), 4000)]
+
+    # Отправляем каждую часть текста как отдельное сообщение
+    for i, part in enumerate(parts):
+        keyboard = []
+        # Добавляем кнопку "Назад" только к последнему сообщению
+        if i == len(parts) - 1:
+            keyboard = [[InlineKeyboardButton("Назад", callback_data="work_features")]]
+
+        reply_markup = InlineKeyboardMarkup(keyboard) if keyboard else None
+
+        # Если это первая часть, редактируем текущее сообщение
+        if i == 0:
+            await query.edit_message_text(part, parse_mode='Markdown', reply_markup=reply_markup)
+        else:
+            # Если это последующие части, отправляем новые сообщения
+            await query.message.reply_text(part, parse_mode='Markdown', reply_markup=reply_markup)
+
 
 # Получение всех категорий блюд
 def get_categories():
@@ -836,6 +1100,53 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     data = query.data
     if data == 'main_menu':
         await handle_main_menu(query)
+    elif data == "work_features":
+        keyboard = [
+            [InlineKeyboardButton("Утренняя смена", callback_data="work_morning")],
+            [InlineKeyboardButton("Дневная смена", callback_data="work_day")],
+            [InlineKeyboardButton("Вечерняя смена", callback_data="work_evening")],
+            [InlineKeyboardButton("Знакомство с ХиВом", callback_data="work_dating")],
+            [InlineKeyboardButton("Основы основ", callback_data="work_base")],
+            [InlineKeyboardButton("Работа с iiko", callback_data="work_iiko")],
+            [InlineKeyboardButton("Работа на раздаче", callback_data="work_bring")],
+            [InlineKeyboardButton("Шаги сервиса", callback_data="work_service")],
+            [InlineKeyboardButton("Хост", callback_data="work_host")],
+            [InlineKeyboardButton("Работа с доставкой", callback_data="work_delivery")],
+            [InlineKeyboardButton("Работа с баром", callback_data="work_bar")],
+            [InlineKeyboardButton("Особые случаи", callback_data="work_special")],
+            [InlineKeyboardButton("Назад", callback_data="welcome")]
+        ]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+
+        # Отправляем новое сообщение, а не редактируем текущее
+        await query.message.reply_text(
+            "Выберите раздел, чтобы узнать подробности:",
+            reply_markup=reply_markup
+        )
+    elif data == "work_morning":
+        await handle_morning_shift(query)
+    elif data == "work_day":
+        await handle_day_shift(query)
+    elif data == "work_evening":
+        await handle_evening_shift(query)
+    elif data == "work_iiko":
+        await handle_iiko(query)
+    elif data == "work_dating":
+        await handle_dating(query)
+    elif data == "work_service":
+        await handle_service(query)
+    elif data == "work_special":
+        await handle_special(query)
+    elif data == "work_base":
+        await handle_base(query)
+    elif data == "work_host":
+        await handle_host(query)
+    elif data == "work_bar":
+        await handle_bar(query)
+    elif data == "work_delivery":
+        await handle_delivery(query)
+    elif data == "work_bring":
+        await handle_bring(query)
     elif data in get_categories():
         await handle_category(query, data)
     elif data == 'take_order':
@@ -926,7 +1237,6 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         print(category_name)
         await handle_drink_order_category(query, category_name)
     elif data.startswith('drk_ord_sub_'):
-        print('tcnm')
         _, _, _, category_name, subcategory_name = data.split('_')
         await handle_drink_order_subcategory(query, category_name, subcategory_name)
     elif data.startswith('order_drink_'):
