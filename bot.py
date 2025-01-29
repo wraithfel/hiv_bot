@@ -4,6 +4,7 @@ from openai import OpenAI
 import psycopg2
 import json
 import openai
+import os
 
 file_path = "useful_links.txt"
 
@@ -101,21 +102,31 @@ def create_vector_store_with_menu_and_drinks():
     menu_file_path = export_menu_to_json()
     drinks_file_path = export_drinks_to_json()
 
-    # Создаем Vector Store
-    vector_store = client.beta.vector_stores.create(name="Menu and Drinks Data Store")
+    # Указываем пути к дополнительным файлам
+    warnings_file_path = "warnings.txt"
+    service_file_path = "service.txt"
 
-    # Загружаем файлы в Vector Store
-    file_paths = [menu_file_path, drinks_file_path]
+    # Проверяем существование дополнительных файлов
+    for file_path in [warnings_file_path, service_file_path]:
+        if not os.path.exists(file_path):
+            raise FileNotFoundError(f"Файл {file_path} не найден. Проверьте путь.")
+
+    # Создаем Vector Store
+    vector_store = client.beta.vector_stores.create(name="Menu, Drinks, and Service Data Store")
+
+    # Загружаем все файлы в Vector Store
+    file_paths = [menu_file_path, drinks_file_path, warnings_file_path, service_file_path]
     file_streams = [open(path, "rb") for path in file_paths]
 
-    file_batch = client.beta.vector_stores.file_batches.upload_and_poll(
-        vector_store_id=vector_store.id,
-        files=file_streams
-    )
-
-    # Закрываем открытые файловые потоки
-    for stream in file_streams:
-        stream.close()
+    try:
+        file_batch = client.beta.vector_stores.file_batches.upload_and_poll(
+            vector_store_id=vector_store.id,
+            files=file_streams
+        )
+    finally:
+        # Закрываем открытые файловые потоки
+        for stream in file_streams:
+            stream.close()
 
     print("Vector Store создан с ID:", vector_store.id)
     print("Статус загрузки:", file_batch.status)
@@ -127,17 +138,156 @@ def create_assistant_with_combined_file_search(vector_store_id):
     assistant = client.beta.assistants.create(
         name="Restaurant Assistant",
         instructions=(
-            "Ты — помощник для обучения официантов с помощью работы с данными ресторана. "
-            "Отвечай на вопросы о меню и напитках, используя доступную базу знаний, а также свои знания."
-            "Если вопрос задан не по ресторанной теме, нужно вежливо попросить задать вопрос по теме."
+            "Ты — ассистент ресторана. Отвечай на вопросы, связанные с ресторанной тематикой, а также на общие вопросы, "
+            "которые могут быть связаны с работой ресторана, обслуживанием, меню, напитками или сервисом. "
+            "Если вопрос не относится к ресторанной тематике (например, 'Какая погода сегодня?'), вежливо попроси задать вопрос по теме. "
+            "Будь лояльным к вопросам, которые могут быть связаны с ресторанной тематикой, даже если они сформулированы не строго. "
+            "Если в данных нет конкретного комментария о том, что можно сделать с блюдом (например, изменить тесто, убрать соус или специи), "
+            "отвечай, что это невозможно, так как в нашем ресторане так блюдо не подают. "
+            "Все соусы и специи — цельные заготовки, их нельзя изменять. Если пользователь спрашивает о такой возможности, отвечай, что это не предусмотрено. "
+            "Будь строг в своих ответах, когда речь идёт о соблюдении установленных стандартов ресторана, но проявляй гибкость в коммуникации, чтобы пользователь чувствовал себя комфортно."
         ),
-        model="gpt-4o-mini",
+
+    model="gpt-4o-mini",
         tools=[{"type": "file_search"}],
-        tool_resources={"file_search": {"vector_store_ids": [vector_store_id]}}
-        #ranking_options = {"ranker": "auto", "score_threshold": 0.5}  # Без аннотаций
+        tool_resources={"file_search": {"vector_store_ids": [vector_store_id]}},
     )
     print("Ассистент создан с ID:", assistant.id)
     return assistant.id
+
+#выбираем рандомные вопросы для особенностей работы
+def get_random_questions():
+    conn = connect_to_db()
+    cursor = conn.cursor()
+
+    # Выбираем 5 случайных вопросов из таблицы
+    cursor.execute("SELECT question, answer, explanation FROM work_features_questions ORDER BY RANDOM() LIMIT 5")
+    questions = [{"question": row[0], "correct_answer": row[1], "explanation": row[2]} for row in cursor.fetchall()]
+
+    cursor.close()
+    conn.close()
+    return questions
+
+# Обработчик для кнопки "Особенности работы"
+async def handle_work_features_test(query, context):
+    # Генерация теста
+    questions = get_random_questions()
+
+    # Сохраняем тест в контексте
+    context.user_data['current_test'] = {
+        "questions": questions,
+        "current_index": 0,
+        "score": 0
+    }
+
+    context.user_data['test_in_progress'] = True
+
+    # Отправляем первый вопрос
+    await send_next_question(query, context)
+
+
+async def send_next_question(query, context):
+    test = context.user_data.get('current_test')
+
+    if not test or test["current_index"] >= len(test["questions"]):
+        # Завершаем тест, если вопросы закончились
+        score = test["score"]
+        total = len(test["questions"])
+        keys_to_remove = ['test_in_progress', 'current_test', 'current_question']
+        for key in keys_to_remove:
+            context.user_data.pop(key, None)
+        await query.message.reply_text(
+            f"🎉 Тест завершён! Вы набрали *{score}/{total}* баллов.",
+            parse_mode="Markdown",
+            reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("Назад", callback_data="test")]])
+        )
+        return
+
+    # Получаем текущий вопрос
+    current_question = test["questions"][test["current_index"]]
+    context.user_data["current_question"] = current_question
+
+    # Отправляем вопрос пользователю
+    await query.message.reply_text(
+        f"❓ Вопрос {test['current_index'] + 1}:\n{current_question['question']}",
+        parse_mode="Markdown",
+        reply_markup=InlineKeyboardMarkup([
+            [InlineKeyboardButton("Завершить тест", callback_data="cancel_test")]
+        ])
+    )
+
+# Обработчик кнопки "Завершить тест"
+async def handle_cancel_test(query, context):
+    # Завершаем текущий тест
+    keys_to_remove = ['test_in_progress', 'current_test', 'current_question']
+    for key in keys_to_remove:
+        context.user_data.pop(key, None)
+
+    # Сообщаем пользователю, что тест завершен
+    await query.message.reply_text(
+        "Вы завершили тест досрочно. Вы можете вернуться в раздел тестирования.",
+        reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("Вернуться", callback_data="test")]])
+    )
+
+async def handle_work_features_answer(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Обрабатывает ответы пользователей на тест по особенностям работы."""
+    user_message = update.message.text.strip()
+
+    # Если идет тестирование по составам, перенаправляем туда
+    if context.user_data.get("test_composition_in_progress"):
+        await handle_test_composition_answer(update, context)
+        return
+
+    # Проверяем, идет ли тестирование по особенностям работы
+    test = context.user_data.get('current_test')
+    current_question = context.user_data.get('current_question')
+
+    if not test or not current_question:
+        # Если теста нет, вызываем `handle_question`, но **только один раз**.
+        if not context.user_data.get("question_handled"):
+            context.user_data["question_handled"] = True  # Устанавливаем флаг
+            await handle_question(update, context)
+        return
+
+    # Формируем промпт для ChatGPT
+    user_prompt = (
+        f"Вопрос: {current_question['question']}\n"
+        f"Ответ пользователя: {user_message}\n"
+        f"Эталонный ответ: {current_question['correct_answer']}\n"
+        f"Пояснение: {current_question['explanation']}\n\n"
+        f"Проанализируй ответ пользователя. Если есть ошибки, укажи их. "
+        f"Вердикт: 'правильно' или 'неправильно'."
+    )
+
+    try:
+        waiting_message = await update.message.reply_text("⏳ Проверяю ваш ответ, подождите...")
+
+        # Отправляем запрос в ChatGPT
+        thread = client.beta.threads.create(messages=[{"role": "user", "content": user_prompt}])
+        run = client.beta.threads.runs.create_and_poll(thread_id=thread.id, assistant_id="asst_V4fnGcTH8KSm4XuoGi7HoSKQ")
+        messages = list(client.beta.threads.messages.list(thread_id=thread.id, run_id=run.id))
+
+        # Получаем ответ ChatGPT
+        if messages:
+            assistant_response = messages[0].content[0].text.value
+            await waiting_message.edit_text(f"💬 {assistant_response}", parse_mode="Markdown")
+
+            # Оцениваем результат теста
+            if "правильно" in assistant_response.lower() and "неправильно" not in assistant_response.lower():
+                test["score"] += 1
+
+            # Переходим к следующему вопросу
+            test["current_index"] += 1
+            await send_next_question(update, context)
+        else:
+            await update.message.reply_text("К сожалению, я не смог проверить ваш ответ. Попробуйте снова.")
+
+    except Exception as e:
+        await update.message.reply_text(f"❌ Ошибка: {e}")
+
+    # ✅ Сбрасываем флаг обработки вопросов после выполнения
+    context.user_data.pop("question_handled", None)
+
 
 # Чтение текста из файла
 def read_text_from_file(file_path):
@@ -148,6 +298,153 @@ def read_text_from_file(file_path):
         return "Файл с информацией не найден."
     except Exception as e:
         return f"Произошла ошибка при чтении файла: {e}"
+
+
+async def handle_test_menu(query):
+    keyboard = [
+        [InlineKeyboardButton("Основное меню", callback_data="test_main_menu")],
+        [InlineKeyboardButton("Напитки", callback_data="test_drinks")],
+        [InlineKeyboardButton("Особенности работы", callback_data="test_work_features")],
+        [InlineKeyboardButton("Назад", callback_data="welcome")]
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    await query.edit_message_text("Выберите раздел для тестирования:", reply_markup=reply_markup)
+
+async def handle_test_main_menu(query):
+    keyboard = [
+        [InlineKeyboardButton("Тестирование по составам", callback_data="test_compositions")],
+        [InlineKeyboardButton("Тестирование по всему меню", callback_data="test_full_menu")],
+        [InlineKeyboardButton("Назад", callback_data="test")]
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    await query.edit_message_text("Выберите тип тестирования для основного меню:", reply_markup=reply_markup)
+
+# Обработчик для тестирования "по составам" — выбор категории
+async def handle_test_compositions(query):
+    categories = get_categories()  # Получение всех категорий
+    keyboard = [
+        [InlineKeyboardButton(category, callback_data=f"test_compositions_{category}")] for category in categories
+    ]
+    keyboard.append([InlineKeyboardButton("Назад", callback_data="test_main_menu")])
+    reply_markup = InlineKeyboardMarkup(keyboard)
+
+    await query.edit_message_text(
+        "📋 Выберите категорию для тестирования по составам:",
+        reply_markup=reply_markup,
+        parse_mode="Markdown"
+    )
+
+async def handle_test_compositions_category(query, category_name):
+    dishes = get_dishes_by_category(category_name)  # Получение блюд в категории
+    if not dishes:
+        await query.edit_message_text(
+            f"🚫 В категории *{category_name}* нет доступных блюд.",
+            parse_mode="Markdown",
+            reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("Назад", callback_data="test_compositions")]])
+        )
+        return
+
+    keyboard = [
+        [InlineKeyboardButton(dish["name"], callback_data=f"test_composition_dish_{dish['id']}")] for dish in dishes
+    ]
+    keyboard.append([InlineKeyboardButton("Назад", callback_data="test_compositions")])
+    reply_markup = InlineKeyboardMarkup(keyboard)
+
+    await query.edit_message_text(
+        f"📋 Выберите блюдо из категории *{category_name}* для проверки состава:",
+        reply_markup=reply_markup,
+        parse_mode="Markdown"
+    )
+
+def get_dish_ingredients(dish_id):
+    conn = connect_to_db()
+    cursor = conn.cursor()
+    cursor.execute(
+        "SELECT question, answer FROM test_ingredients WHERE id = %s",
+        (dish_id,)
+    )
+    row = cursor.fetchone()
+    cursor.close()
+    conn.close()
+
+    if row:
+        return {"name": row[0], "ingredients": row[1]}
+    return None
+
+
+async def handle_test_composition_dish(query, dish_id, context):
+    dish_data = get_dish_ingredients(dish_id)
+    d2 = get_dish_by_id(dish_id)
+
+    if not dish_data:
+        await query.message.reply_text("❌ Данные о составе блюда не найдены.")
+        return
+
+    context.user_data["test_composition_in_progress"] = True
+
+    context.user_data["test_dish"] = {
+        "dish_id": dish_id,
+        "dish_name": dish_data["name"],
+        "correct_ingredients": dish_data["ingredients"]
+    }
+
+    await query.message.reply_text(
+        f"📋 Назовите полный состав блюда *{dish_data['name']}*.\n"
+        "Перечислите все ингредиенты через запятую.",
+        parse_mode="Markdown",
+        reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("Назад", callback_data=f"test_compositions_{d2[2]}")]])
+    )
+
+async def handle_test_composition_answer(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Обрабатывает ответы пользователей на тест по составу блюд."""
+    user_message = update.message.text.strip().lower()
+    test_dish = context.user_data.get("test_dish")
+
+    # Если нет активного теста по составам, отправляем вопрос в `handle_question`
+    if not context.user_data.get("test_composition_in_progress"):
+        await handle_question(update, context)
+        return
+
+    # Если нет данных о текущем блюде, просим пользователя выбрать снова
+    if not test_dish:
+        await update.message.reply_text("❌ Тестирование неактивно. Выберите блюдо заново.")
+        return
+
+    correct_ingredients = test_dish["correct_ingredients"].lower()
+
+    # Формируем промпт для ChatGPT
+    user_prompt = (
+        f"Блюдо: {test_dish['dish_name']}\n"
+        f"Ответ пользователя: {user_message}\n"
+        f"Эталонный состав: {correct_ingredients}\n\n"
+        f"Проанализируй ответ пользователя. Если есть ошибки, укажи, какие ингредиенты лишние и какие отсутствуют. "
+        f"Обратись к пользователю напрямую, избегая третьего лица. Вердикт: 'правильно' или 'неправильно'."
+    )
+
+    try:
+        waiting_message = await update.message.reply_text("⏳ Проверяю ваш ответ, подождите...")
+
+        # Отправляем запрос в ChatGPT
+        thread = client.beta.threads.create(messages=[{"role": "user", "content": user_prompt}])
+        run = client.beta.threads.runs.create_and_poll(thread_id=thread.id,
+                                                       assistant_id="asst_V4fnGcTH8KSm4XuoGi7HoSKQ")
+        messages = list(client.beta.threads.messages.list(thread_id=thread.id, run_id=run.id))
+
+        if messages:
+            assistant_response = messages[0].content[0].text.value
+            keyboard = [[InlineKeyboardButton("🔙 Завершить", callback_data="test")]]
+            reply_markup = InlineKeyboardMarkup(keyboard)
+            await waiting_message.edit_text(f"💬 {assistant_response}", parse_mode="Markdown", reply_markup=reply_markup)
+
+            # Завершаем тест
+            context.user_data.pop("test_dish", None)
+            context.user_data.pop("test_composition_in_progress", None)
+        else:
+            await update.message.reply_text("К сожалению, я не смог проверить ваш ответ. Попробуйте снова.")
+
+    except Exception as e:
+        await update.message.reply_text(f"❌ Ошибка: {e}")
+
 
 # Обработчики для смен
 async def handle_morning_shift(query):
@@ -632,7 +929,6 @@ async def send_drink_card(query, drink_data):
                     reply_markup=reply_markup
                 )
             except Exception as e:
-                print(e)
                 message += "\n🌐 Фото временно недоступно."
                 await query.message.reply_text(
                     message,
@@ -818,7 +1114,7 @@ async def handle_drink_ok(query, drink_id, context):
 
     # Запрашиваем у пользователя количество напитка
     await query.message.reply_text(
-        f"Вы выбрали *{drink_data[1]}*.\n\nВведите количество этого напитка:",
+        f"Вы выбрали *{drink_data[1]}*.\n\nВведите количество порций этого напитка:",
         parse_mode='Markdown'
     )
 
@@ -1125,6 +1421,23 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
     elif data == "work_morning":
         await handle_morning_shift(query)
+    elif data == 'test':
+        await handle_test_menu(query)
+    elif data == "test_main_menu":
+        await handle_test_main_menu(query)
+    elif data == "test_compositions":
+        await handle_test_compositions(query)
+    elif data.startswith("test_compositions_"):
+        category_name = data.split("_", 2)[2]
+        await handle_test_compositions_category(query, category_name)
+    elif data.startswith("test_composition_dish_"):
+        dish_id = int(data.split("_")[3])
+        await handle_test_composition_dish(query, dish_id, context)
+
+    elif data == "test_work_features":
+        await handle_work_features_test(query, context)
+    elif data == "cancel_test":
+        await handle_cancel_test(query, context)
     elif data == "work_day":
         await handle_day_shift(query)
     elif data == "work_evening":
@@ -1321,6 +1634,14 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def handle_question(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_message = update.message.text
+    if context.user_data.get("test_composition_in_progress"):
+        await handle_test_composition_answer(update, context)
+        return
+
+    elif context.user_data.get("test_in_progress"):
+        await handle_work_features_answer(update, context)
+        return
+
     history = context.user_data.get('conversation_history', [])
 
     # Добавляем новый запрос пользователя в историю
@@ -1443,7 +1764,7 @@ async def handle_question(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
             # Запускаем выполнение и ждем завершения
             run = client.beta.threads.runs.create_and_poll(
-                thread_id=thread.id, assistant_id="asst_gVj6evsMb8FiODO9BPZH39zr"
+                thread_id=thread.id, assistant_id="asst_V4fnGcTH8KSm4XuoGi7HoSKQ"
             )
 
             # Получаем список сообщений из выполнения
@@ -1487,7 +1808,7 @@ async def handle_question(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
             # Запускаем выполнение и ждем завершения
             run = client.beta.threads.runs.create_and_poll(
-                thread_id=thread.id, assistant_id="asst_gVj6evsMb8FiODO9BPZH39zr"
+                thread_id=thread.id, assistant_id="asst_V4fnGcTH8KSm4XuoGi7HoSKQ"
             )
 
             # Получаем список сообщений из выполнения
@@ -1531,7 +1852,7 @@ async def handle_question(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
             # Запускаем выполнение и ждем завершения
             run = client.beta.threads.runs.create_and_poll(
-                thread_id=thread.id, assistant_id="asst_gVj6evsMb8FiODO9BPZH39zr"
+                thread_id=thread.id, assistant_id="asst_V4fnGcTH8KSm4XuoGi7HoSKQ"
             )
 
             # Получаем список сообщений из выполнения
@@ -1558,7 +1879,6 @@ async def handle_question(update: Update, context: ContextTypes.DEFAULT_TYPE):
         except Exception as e:
             await update.message.reply_text(f"Произошла ошибка: {e}")
     elif 'awaiting_question_for_order_drink' in context.user_data:
-        print('да')
         drink_data = context.user_data['awaiting_question_for_order_drink']
 
         # Формируем запрос для ассистента
@@ -1575,7 +1895,7 @@ async def handle_question(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
             # Запускаем выполнение и ждем завершения
             run = client.beta.threads.runs.create_and_poll(
-                thread_id=thread.id, assistant_id="asst_gVj6evsMb8FiODO9BPZH39zr"
+                thread_id=thread.id, assistant_id="asst_V4fnGcTH8KSm4XuoGi7HoSKQ"
             )
 
             # Получаем список сообщений из выполнения
@@ -1626,10 +1946,6 @@ def main():
 
     # Создаем ассистента с доступом к этому Vector Store
     #assistant_id = create_assistant_with_combined_file_search(vector_store_id)
-
-    # Создаем Vector Store и ассистента
-    #vector_store_id = create_vector_store()
-    #assistant_id = create_assistant_with_file_search(vector_store_id)'''
 
     app = Application.builder().token(TOKEN).build()
     app.add_handler(CommandHandler("start", start))

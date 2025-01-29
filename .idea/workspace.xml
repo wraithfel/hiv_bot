@@ -5,20 +5,11 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="565237b0-e955-461f-a025-ed00ada6640a" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/bar.txt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/base.txt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/bring.txt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/dating.txt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/day_shift.txt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/delivery.txt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/host.txt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/iiko.txt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/morning_shift.txt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/night_shift.txt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/service.txt" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/warnings.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/csv-editor.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/csv-editor.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/bot.py" beforeDir="false" afterPath="$PROJECT_DIR$/bot.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/work.txt" beforeDir="false" afterPath="$PROJECT_DIR$/work.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/service.txt" beforeDir="false" afterPath="$PROJECT_DIR$/service.txt" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -48,12 +39,17 @@
   &quot;keyToString&quot;: {
     &quot;Python.bot.executor&quot;: &quot;Run&quot;,
     &quot;Python.menu.executor&quot;: &quot;Run&quot;,
+    &quot;Python.rr.executor&quot;: &quot;Run&quot;,
     &quot;Python.test.executor&quot;: &quot;Run&quot;,
     &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;SHARE_PROJECT_CONFIGURATION_FILES&quot;: &quot;true&quot;
+    &quot;SHARE_PROJECT_CONFIGURATION_FILES&quot;: &quot;true&quot;,
+    &quot;last_opened_file_path&quot;: &quot;/Users/nikita_lebedev/PycharmProjects/hiv_online_bot&quot;
   }
 }</component>
   <component name="RecentsManager">
+    <key name="CopyFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$" />
+    </key>
     <key name="MoveFile.RECENT_KEYS">
       <recent name="$PROJECT_DIR$" />
     </key>
