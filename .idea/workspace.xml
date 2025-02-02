@@ -5,11 +5,16 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="565237b0-e955-461f-a025-ed00ada6640a" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/warnings.txt" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/instruction.txt" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/wine.txt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/csv-editor.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/csv-editor.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/bot.py" beforeDir="false" afterPath="$PROJECT_DIR$/bot.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/drinks_data.json" beforeDir="false" afterPath="$PROJECT_DIR$/drinks_data.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/menu_data.json" beforeDir="false" afterPath="$PROJECT_DIR$/menu_data.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/rr.py" beforeDir="false" afterPath="$PROJECT_DIR$/rr.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/service.txt" beforeDir="false" afterPath="$PROJECT_DIR$/service.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/warnings.txt" beforeDir="false" afterPath="$PROJECT_DIR$/warnings.txt" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -71,5 +76,16 @@
       <updated>1736434790962</updated>
     </task>
     <servers />
+  </component>
+  <component name="Vcs.Log.Tabs.Properties">
+    <option name="TAB_STATES">
+      <map>
+        <entry key="MAIN">
+          <value>
+            <State />
+          </value>
+        </entry>
+      </map>
+    </option>
   </component>
 </project>
