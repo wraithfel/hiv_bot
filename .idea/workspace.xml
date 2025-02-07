@@ -5,16 +5,41 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="565237b0-e955-461f-a025-ed00ada6640a" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/instruction.txt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/wine.txt" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/assistance_create.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/bot.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/db_func.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/export_json.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/handle_text_features.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/csv-editor.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/csv-editor.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/bot.py" beforeDir="false" afterPath="$PROJECT_DIR$/bot.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/drinks_data.json" beforeDir="false" afterPath="$PROJECT_DIR$/drinks_data.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/menu_data.json" beforeDir="false" afterPath="$PROJECT_DIR$/menu_data.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/rr.py" beforeDir="false" afterPath="$PROJECT_DIR$/rr.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/service.txt" beforeDir="false" afterPath="$PROJECT_DIR$/service.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/warnings.txt" beforeDir="false" afterPath="$PROJECT_DIR$/warnings.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/bar.txt" beforeDir="false" afterPath="$PROJECT_DIR$/resources/bar.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/base.txt" beforeDir="false" afterPath="$PROJECT_DIR$/resources/base.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/bot.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/bring.txt" beforeDir="false" afterPath="$PROJECT_DIR$/resources/bring.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/config.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/dating.txt" beforeDir="false" afterPath="$PROJECT_DIR$/resources/dating.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/day_shift.txt" beforeDir="false" afterPath="$PROJECT_DIR$/resources/day_shift.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/db_config.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/db_config.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/delivery.txt" beforeDir="false" afterPath="$PROJECT_DIR$/resources/delivery.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/drinks_data.json" beforeDir="false" afterPath="$PROJECT_DIR$/data/drinks_data.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/drinks_questions_data.json" beforeDir="false" afterPath="$PROJECT_DIR$/data/drinks_questions_data.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/faq_data.json" beforeDir="false" afterPath="$PROJECT_DIR$/data/faq_data.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/host.txt" beforeDir="false" afterPath="$PROJECT_DIR$/resources/host.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/iiko.txt" beforeDir="false" afterPath="$PROJECT_DIR$/resources/iiko.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/instruction.txt" beforeDir="false" afterPath="$PROJECT_DIR$/resources/instruction.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/menu_data.json" beforeDir="false" afterPath="$PROJECT_DIR$/data/menu_data.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/morning_shift.txt" beforeDir="false" afterPath="$PROJECT_DIR$/resources/morning_shift.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/night_shift.txt" beforeDir="false" afterPath="$PROJECT_DIR$/resources/night_shift.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/requirements.txt" beforeDir="false" afterPath="$PROJECT_DIR$/requirements.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/rr.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/service.txt" beforeDir="false" afterPath="$PROJECT_DIR$/resources/service.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/test_ingredients_data.json" beforeDir="false" afterPath="$PROJECT_DIR$/data/test_ingredients_data.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/useful_links.txt" beforeDir="false" afterPath="$PROJECT_DIR$/resources/useful_links.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/warnings.txt" beforeDir="false" afterPath="$PROJECT_DIR$/resources/warnings.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/wine.txt" beforeDir="false" afterPath="$PROJECT_DIR$/resources/wine.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/work.txt" beforeDir="false" afterPath="$PROJECT_DIR$/resources/work.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/work_features_questions_data.json" beforeDir="false" afterPath="$PROJECT_DIR$/data/work_features_questions_data.json" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -43,6 +68,7 @@
   <component name="PropertiesComponent">{
   &quot;keyToString&quot;: {
     &quot;Python.bot.executor&quot;: &quot;Run&quot;,
+    &quot;Python.export_json.executor&quot;: &quot;Run&quot;,
     &quot;Python.menu.executor&quot;: &quot;Run&quot;,
     &quot;Python.rr.executor&quot;: &quot;Run&quot;,
     &quot;Python.test.executor&quot;: &quot;Run&quot;,
@@ -56,6 +82,10 @@
       <recent name="$PROJECT_DIR$" />
     </key>
     <key name="MoveFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/src" />
+      <recent name="$PROJECT_DIR$/resources" />
+      <recent name="$PROJECT_DIR$/data" />
+      <recent name="$PROJECT_DIR$/config" />
       <recent name="$PROJECT_DIR$" />
     </key>
   </component>
