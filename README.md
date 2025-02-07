@@ -33,3 +33,44 @@
   Модуль экспорта данных из базы данных в JSON-файлы для последующего использования или анализа.
 
 ## Структура проекта
+
+project/ 
+├── config/                  # Файлы конфигурации: 
+│   ├── config.json          # Конфигурация бота (BOT_TOKEN, OPENAI_API_KEY и т.д.) 
+│   └── db_config.json       # Параметры подключения к базе данных 
+├── data/                    # Экспортированные данные (JSON‑файлы) 
+│   ├── drinks_data.json 
+│   ├── drinks_questions_data.json 
+│   ├── faq_data.json 
+│   ├── menu_data.json 
+│   ├── test_ingredients_data.json 
+│   └── work_features_questions_data.json 
+├── resources/               # Текстовые файлы с информацией 
+│   ├── bar.txt 
+│   ├── base.txt 
+│   ├── bring.txt 
+│   ├── dating.txt 
+│   ├── day_shift.txt 
+│   ├── delivery.txt 
+│   ├── host.txt 
+│   ├── iiko.txt 
+│   ├── instruction.txt 
+│   ├── morning_shift.txt 
+│   ├── night_shift.txt 
+│   ├── service.txt 
+│   ├── useful_links.txt 
+│   ├── warnings.txt 
+│   ├── wine.txt 
+│   └── work.txt 
+├── src/                     # Исходный код проекта 
+│   ├── init.py 
+│   ├── assistance_create.py   # Создание Vector Store и ассистента 
+│   ├── bot.py                 # Основной модуль бота 
+│   ├── db_func.py             # Функции работы с базой данных 
+│   ├── export_json.py         # Экспорт данных из БД в JSON 
+│   └── handle_text_features.py# Обработка текстовой информации и тестов 
+├── tests/                   # (Опционально) Модульные тесты 
+│   └── test_example.py 
+├── requirements.txt         # Зависимости проекта 
+└── README.md                # Документация проекта
+
